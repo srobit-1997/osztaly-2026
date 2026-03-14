@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Naptár Jelölés</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <h1>Naptár jelölés</h1>
+        <p>Válassz dátumtartományt 2026.03.01 és 2026.09.01 között, írd be a neved, majd mentsd.</p>
+      </section>
+
+      <section class="panel">
+        <div class="field">
+          <label for="name">Név</label>
+          <input id="name" type="text" placeholder="Pl. Kovács Anna" />
+        </div>
+
+        <div class="calendar" id="calendar"></div>
+
+        <div class="actions">
+          <button id="clearRange" class="ghost">Tartomány törlése</button>
+          <button id="saveRange" class="primary">Mentés</button>
+        </div>
+
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Elmentett jelölések</h2>
+        <ul id="savedList" class="saved-list"></ul>
+      </section>
+
+      <section class="panel info">
+        <h2>Tárolás – lehetőségek</h2>
+        <ol>
+          <li><strong>LocalStorage (demo)</strong>: gyors, kliensoldali mentés, de csak a böngészőben él.</li>
+          <li><strong>Szerver + adatbázis</strong>: közös, tartós tárolás. Például: Node.js + PostgreSQL.</li>
+          <li><strong>Felhő</strong>: Firebase/Firestore vagy Supabase – hitelesítés és valós idejű szinkron.</li>
+        </ol>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
