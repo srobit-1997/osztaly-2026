@@ -33,6 +33,10 @@ const goodList = document.getElementById("goodList");
 const badList = document.getElementById("badList");
 const summaryCalendarEl = document.getElementById("summaryCalendar");
 
+if (!saveGoodBtn || !saveBadBtn || !clearBtn) {
+  console.error("Hiányzó gombok: ellenőrizd, hogy a friss index.html van-e feltöltve.");
+}
+
 const rangeStart = new Date("2026-03-01T00:00:00");
 const rangeEnd = new Date("2026-09-01T00:00:00");
 
