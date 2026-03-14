@@ -25,10 +25,13 @@ const bookingsRef = ref(db, "bookings");
 
 const calendarEl = document.getElementById("calendar");
 const nameInput = document.getElementById("name");
-const saveBtn = document.getElementById("saveRange");
+const saveGoodBtn = document.getElementById("saveGood");
+const saveBadBtn = document.getElementById("saveBad");
 const clearBtn = document.getElementById("clearRange");
 const statusEl = document.getElementById("status");
-const savedList = document.getElementById("savedList");
+const goodList = document.getElementById("goodList");
+const badList = document.getElementById("badList");
+const summaryCalendarEl = document.getElementById("summaryCalendar");
 
 const rangeStart = new Date("2026-03-01T00:00:00");
 const rangeEnd = new Date("2026-09-01T00:00:00");
@@ -196,42 +199,164 @@ const updateStatus = (message = "") => {
 };
 
 const renderBookings = (bookings) => {
-  savedList.innerHTML = "";
+  goodList.innerHTML = "";
+  badList.innerHTML = "";
 
-  if (!bookings.length) {
-    const empty = document.createElement("li");
-    empty.textContent = "Még nincs mentett jelölés.";
-    savedList.appendChild(empty);
-    return;
-  }
+  const goodItems = bookings.filter((b) => b.status === "good");
+  const badItems = bookings.filter((b) => b.status === "bad");
 
-  bookings.forEach((booking) => {
-    const item = document.createElement("li");
-    const label = document.createElement("span");
-    label.textContent = booking.name;
-    const range = document.createElement("div");
-    range.textContent = `${booking.start} – ${booking.end}`;
+  const renderList = (items, listEl, emptyText) => {
+    if (!items.length) {
+      const empty = document.createElement("li");
+      empty.textContent = emptyText;
+      listEl.appendChild(empty);
+      return;
+    }
 
-    const remove = document.createElement("button");
-    remove.className = "ghost";
-    remove.textContent = "Törlés";
-    remove.addEventListener("click", async () => {
-      try {
-        await remove(ref(db, `bookings/${booking.id}`));
-      } catch (err) {
-        updateStatus("Törlés sikertelen.");
-        console.error(err);
-      }
+    items.forEach((booking) => {
+      const item = document.createElement("li");
+      const label = document.createElement("span");
+      label.textContent = booking.name;
+      const range = document.createElement("div");
+      range.textContent = `${booking.start} – ${booking.end}`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "ghost";
+      removeBtn.textContent = "Törlés";
+      removeBtn.addEventListener("click", async () => {
+        try {
+          await remove(ref(db, `bookings/${booking.id}`));
+        } catch (err) {
+          updateStatus("Törlés sikertelen.");
+          console.error(err);
+        }
+      });
+
+      item.appendChild(label);
+      item.appendChild(range);
+      item.appendChild(removeBtn);
+      listEl.appendChild(item);
     });
+  };
 
-    item.appendChild(label);
-    item.appendChild(range);
-    item.appendChild(remove);
-    savedList.appendChild(item);
-  });
+  renderList(goodItems, goodList, "Még nincs mentett jó időpont.");
+  renderList(badItems, badList, "Még nincs mentett nem jó időpont.");
+
+  renderSummaryCalendar(bookings);
 };
 
-saveBtn.addEventListener("click", async () => {
+const eachDayInRange = (start, end) => {
+  const days = [];
+  const current = new Date(start);
+  while (current <= end) {
+    days.push(new Date(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return days;
+};
+
+const renderSummaryCalendar = (bookings) => {
+  summaryCalendarEl.innerHTML = "";
+  const startMonth = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  const endMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+
+  for (
+    let month = new Date(startMonth);
+    month <= endMonth;
+    month.setMonth(month.getMonth() + 1)
+  ) {
+    const monthEl = document.createElement("div");
+    monthEl.className = "month";
+
+    const title = document.createElement("h3");
+    title.textContent = `${monthNames[month.getMonth()]} ${month.getFullYear()}`;
+    monthEl.appendChild(title);
+
+    const weekdaysEl = document.createElement("div");
+    weekdaysEl.className = "weekdays";
+    weekdays.forEach((day) => {
+      const span = document.createElement("span");
+      span.textContent = day;
+      weekdaysEl.appendChild(span);
+    });
+    monthEl.appendChild(weekdaysEl);
+
+    const daysEl = document.createElement("div");
+    daysEl.className = "days";
+
+    const firstDayOfMonth = new Date(
+      month.getFullYear(),
+      month.getMonth(),
+      1
+    );
+    const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
+
+    for (let i = 0; i < startOffset; i += 1) {
+      const empty = document.createElement("div");
+      empty.className = "day is-out";
+      empty.textContent = "";
+      daysEl.appendChild(empty);
+    }
+
+    const daysInMonth = new Date(
+      month.getFullYear(),
+      month.getMonth() + 1,
+      0
+    ).getDate();
+
+    for (let d = 1; d <= daysInMonth; d += 1) {
+      const date = new Date(month.getFullYear(), month.getMonth(), d);
+      const dayEl = document.createElement("div");
+      dayEl.className = "day";
+
+      if (date < rangeStart || date > rangeEnd) {
+        dayEl.classList.add("is-out");
+      } else {
+        const titleEl = document.createElement("strong");
+        titleEl.textContent = d;
+        dayEl.appendChild(titleEl);
+
+        const dateIso = date.toISOString().slice(0, 10);
+        const relevant = bookings.filter((b) => {
+          if (!b.startTs || !b.endTs) return false;
+          return b.startTs.slice(0, 10) <= dateIso && b.endTs.slice(0, 10) >= dateIso;
+        });
+
+        const good = relevant.filter((b) => b.status === "good");
+        const bad = relevant.filter((b) => b.status === "bad");
+
+        if (good.length) {
+          const label = document.createElement("div");
+          good.forEach((b) => {
+            const pill = document.createElement("span");
+            pill.className = "pill good";
+            pill.textContent = b.name;
+            label.appendChild(pill);
+          });
+          dayEl.appendChild(label);
+        }
+
+        if (bad.length) {
+          const label = document.createElement("div");
+          bad.forEach((b) => {
+            const pill = document.createElement("span");
+            pill.className = "pill bad";
+            pill.textContent = b.name;
+            label.appendChild(pill);
+          });
+          dayEl.appendChild(label);
+        }
+      }
+
+      daysEl.appendChild(dayEl);
+    }
+
+    monthEl.appendChild(daysEl);
+    summaryCalendarEl.appendChild(monthEl);
+  }
+};
+
+const saveBooking = async (status) => {
   const name = nameInput.value.trim();
   if (!name) {
     updateStatus("Adj meg egy nevet a mentéshez.");
@@ -246,6 +371,7 @@ saveBtn.addEventListener("click", async () => {
   try {
     await push(bookingsRef, {
       name,
+      status,
       start: formatDate(selectedStart),
       end: formatDate(selectedEnd),
       startTs: selectedStart.toISOString(),
@@ -262,7 +388,10 @@ saveBtn.addEventListener("click", async () => {
     updateStatus("Mentés sikertelen.");
     console.error(err);
   }
-});
+};
+
+saveGoodBtn.addEventListener("click", () => saveBooking("good"));
+saveBadBtn.addEventListener("click", () => saveBooking("bad"));
 
 clearBtn.addEventListener("click", () => {
   selectedStart = null;

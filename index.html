@@ -23,15 +23,28 @@
 
         <div class="actions">
           <button id="clearRange" class="ghost">Tartomány törlése</button>
-          <button id="saveRange" class="primary">Mentés</button>
+          <button id="saveGood" class="primary">Ez jó</button>
+          <button id="saveBad" class="danger">Ez nem jó</button>
         </div>
 
         <div class="status" id="status"></div>
       </section>
 
+      <section class="panel split">
+        <div>
+          <h2>Jó időpontok</h2>
+          <ul id="goodList" class="saved-list"></ul>
+        </div>
+        <div>
+          <h2>Nem jó időpontok</h2>
+          <ul id="badList" class="saved-list"></ul>
+        </div>
+      </section>
+
       <section class="panel">
-        <h2>Elmentett jelölések</h2>
-        <ul id="savedList" class="saved-list"></ul>
+        <h2>Összefoglaló naptár</h2>
+        <p class="muted">Itt látod napokra bontva, kinek mikor jó vagy nem jó.</p>
+        <div class="calendar summary" id="summaryCalendar"></div>
       </section>
 
       <section class="panel info">
