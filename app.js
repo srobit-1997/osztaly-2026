@@ -1,15 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  addDoc,
+  getDatabase,
+  ref,
+  push,
+  onValue,
+  remove,
   serverTimestamp,
-  onSnapshot,
-  query,
-  orderBy,
-  deleteDoc,
-  doc,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB2Mp9SX4IHkD43z_G8buwicBAkC-ka_Ng",
@@ -19,11 +16,12 @@ const firebaseConfig = {
   messagingSenderId: "117220047658",
   appId: "1:117220047658:web:b39aba88582e8aa6473c53",
   measurementId: "G-2T0H6WEBM8",
+  databaseURL: "https://osztaly2016-fd664-default-rtdb.firebaseio.com",
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const bookingsRef = collection(db, "bookings");
+const db = getDatabase(app);
+const bookingsRef = ref(db, "bookings");
 
 const calendarEl = document.getElementById("calendar");
 const nameInput = document.getElementById("name");
@@ -219,7 +217,7 @@ const renderBookings = (bookings) => {
     remove.textContent = "Törlés";
     remove.addEventListener("click", async () => {
       try {
-        await deleteDoc(doc(db, "bookings", booking.id));
+        await remove(ref(db, `bookings/${booking.id}`));
       } catch (err) {
         updateStatus("Törlés sikertelen.");
         console.error(err);
@@ -246,7 +244,7 @@ saveBtn.addEventListener("click", async () => {
   }
 
   try {
-    await addDoc(bookingsRef, {
+    await push(bookingsRef, {
       name,
       start: formatDate(selectedStart),
       end: formatDate(selectedEnd),
@@ -274,12 +272,11 @@ clearBtn.addEventListener("click", () => {
 });
 
 const subscribeBookings = () => {
-  const q = query(bookingsRef, orderBy("createdAt", "desc"));
-  onSnapshot(q, (snapshot) => {
-    const bookings = snapshot.docs.map((docSnap) => ({
-      id: docSnap.id,
-      ...docSnap.data(),
-    }));
+  onValue(bookingsRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    const bookings = Object.entries(data)
+      .map(([id, value]) => ({ id, ...value }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     renderBookings(bookings);
   });
 };
